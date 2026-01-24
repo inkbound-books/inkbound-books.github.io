@@ -2,8 +2,11 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "build": "echo 'no build script'"
+"scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start"
+}
   },
   "dependencies": {
     "@supabase/ssr": "0.8.0",
