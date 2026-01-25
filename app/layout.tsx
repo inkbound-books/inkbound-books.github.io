@@ -40,9 +40,9 @@ export default function RootLayout({
       <body className={`${inter.variable} ${dancingScript.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
+          defaultTheme="system"
+          enableSystem={true}
+          storageKey="inkbound-theme"
         >
           <InkSplatters />
           <Navbar />
