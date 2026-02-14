@@ -16,7 +16,7 @@ export default async function CatalogPage() {
   const { data: books } = await supabase
     .from("books")
     .select("*")
-    .eq("is_published", true)
+    .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
 
   if (!books || books.length === 0) {

@@ -1,10 +1,9 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { updateBook } from "@/app/admin/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,13 +30,14 @@ interface Book {
   apple_url: string | null
   kobo_url: string | null
   price: number | null
-  is_published: boolean
+  is_featured: boolean
 }
 
 export function EditBookDialog({ book }: { book: Book }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: book.title,
     author: book.author,
@@ -47,30 +47,29 @@ export function EditBookDialog({ book }: { book: Book }) {
     apple_url: book.apple_url || "",
     kobo_url: book.kobo_url || "",
     price: book.price?.toString() || "",
-    is_published: book.is_published,
+    is_featured: book.is_featured,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase
-      .from("books")
-      .update({
-        title: formData.title,
-        author: formData.author,
-        description: formData.description || null,
-        cover_url: formData.cover_url || null,
-        amazon_url: formData.amazon_url || null,
-        apple_url: formData.apple_url || null,
-        kobo_url: formData.kobo_url || null,
-        price: formData.price ? parseFloat(formData.price) : null,
-        is_published: formData.is_published,
-      })
-      .eq("id", book.id)
+    const result = await updateBook(book.id, {
+      title: formData.title,
+      author: formData.author,
+      description: formData.description || undefined,
+      cover_url: formData.cover_url || undefined,
+      amazon_url: formData.amazon_url || undefined,
+      apple_url: formData.apple_url || undefined,
+      kobo_url: formData.kobo_url || undefined,
+      price: formData.price || undefined,
+      is_featured: formData.is_featured,
+    })
 
-    if (!error) {
+    if (result.error) {
+      setError(result.error)
+    } else {
       setOpen(false)
       router.refresh()
     }
@@ -93,6 +92,11 @@ export function EditBookDialog({ book }: { book: Book }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-title">Title *</Label>
@@ -181,11 +185,11 @@ export function EditBookDialog({ book }: { book: Book }) {
 
           <div className="flex items-center gap-2">
             <Switch
-              id="edit-is_published"
-              checked={formData.is_published}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+              id="edit-is_featured"
+              checked={formData.is_featured}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
             />
-            <Label htmlFor="edit-is_published">Published</Label>
+            <Label htmlFor="edit-is_featured">Featured</Label>
           </div>
 
           <DialogFooter>

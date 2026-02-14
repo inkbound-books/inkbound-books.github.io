@@ -1,10 +1,9 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { addBook } from "@/app/admin/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,52 +20,47 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, Loader2 } from "lucide-react"
 
+const emptyForm = {
+  title: "",
+  author: "",
+  description: "",
+  cover_url: "",
+  amazon_url: "",
+  apple_url: "",
+  kobo_url: "",
+  price: "",
+  is_featured: false,
+}
+
 export function AddBookDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    title: "",
-    author: "",
-    description: "",
-    cover_url: "",
-    amazon_url: "",
-    apple_url: "",
-    kobo_url: "",
-    price: "",
-    is_published: false,
-  })
+  const [error, setError] = useState<string | null>(null)
+  const [formData, setFormData] = useState(emptyForm)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.from("books").insert({
+    const result = await addBook({
       title: formData.title,
       author: formData.author,
-      description: formData.description || null,
-      cover_url: formData.cover_url || null,
-      amazon_url: formData.amazon_url || null,
-      apple_url: formData.apple_url || null,
-      kobo_url: formData.kobo_url || null,
-      price: formData.price ? parseFloat(formData.price) : null,
-      is_published: formData.is_published,
+      description: formData.description || undefined,
+      cover_url: formData.cover_url || undefined,
+      amazon_url: formData.amazon_url || undefined,
+      apple_url: formData.apple_url || undefined,
+      kobo_url: formData.kobo_url || undefined,
+      price: formData.price || undefined,
+      is_featured: formData.is_featured,
     })
 
-    if (!error) {
+    if (result.error) {
+      setError(result.error)
+    } else {
       setOpen(false)
-      setFormData({
-        title: "",
-        author: "",
-        description: "",
-        cover_url: "",
-        amazon_url: "",
-        apple_url: "",
-        kobo_url: "",
-        price: "",
-        is_published: false,
-      })
+      setFormData(emptyForm)
       router.refresh()
     }
 
@@ -89,6 +83,11 @@ export function AddBookDialog() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
@@ -179,11 +178,11 @@ export function AddBookDialog() {
 
           <div className="flex items-center gap-2">
             <Switch
-              id="is_published"
-              checked={formData.is_published}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+              id="is_featured"
+              checked={formData.is_featured}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
             />
-            <Label htmlFor="is_published">Publish immediately</Label>
+            <Label htmlFor="is_featured">Feature this book</Label>
           </div>
 
           <DialogFooter>

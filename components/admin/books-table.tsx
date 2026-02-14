@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { deleteBook } from "@/app/admin/actions"
 import {
   Table,
   TableBody,
@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EditBookDialog } from "./edit-book-dialog"
-import { Pencil, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
 
 interface Book {
   id: string
@@ -38,7 +38,7 @@ interface Book {
   apple_url: string | null
   kobo_url: string | null
   price: number | null
-  is_published: boolean
+  is_featured: boolean
   created_at: string
 }
 
@@ -52,8 +52,7 @@ export function BooksTable({ books }: BooksTableProps) {
 
   const handleDelete = async (id: string) => {
     setDeleting(id)
-    const supabase = createClient()
-    await supabase.from("books").delete().eq("id", id)
+    await deleteBook(id)
     router.refresh()
     setDeleting(null)
   }
@@ -89,8 +88,8 @@ export function BooksTable({ books }: BooksTableProps) {
                 <TableCell>{book.author}</TableCell>
                 <TableCell>{book.price ? `$${book.price.toFixed(2)}` : "Free"}</TableCell>
                 <TableCell>
-                  <Badge variant={book.is_published ? "default" : "secondary"}>
-                    {book.is_published ? "Published" : "Draft"}
+                  <Badge variant={book.is_featured ? "default" : "secondary"}>
+                    {book.is_featured ? "Featured" : "Standard"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -106,7 +105,7 @@ export function BooksTable({ books }: BooksTableProps) {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Book</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete "{book.title}"? This action cannot be undone.
+                            Are you sure you want to delete &quot;{book.title}&quot;? This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

@@ -1,10 +1,9 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { addFormat, updateFormat, deleteFormat } from "@/app/admin/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,59 +48,70 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
   const [addOpen, setAddOpen] = useState(false)
   const [editOpen, setEditOpen] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [newFormat, setNewFormat] = useState({
     name: "",
     extension: "",
     description: "",
     icon: "",
   })
-  const [editFormat, setEditFormat] = useState<Format | null>(null)
+  const [editFormatData, setEditFormatData] = useState<Format | null>(null)
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const supabase = createClient()
-    await supabase.from("formats").insert({
+    setError(null)
+
+    const result = await addFormat({
       name: newFormat.name,
       extension: newFormat.extension,
-      description: newFormat.description || null,
-      icon: newFormat.icon || null,
+      description: newFormat.description || undefined,
+      icon: newFormat.icon || undefined,
     })
-    setAddOpen(false)
-    setNewFormat({ name: "", extension: "", description: "", icon: "" })
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      setAddOpen(false)
+      setNewFormat({ name: "", extension: "", description: "", icon: "" })
+      router.refresh()
+    }
+
     setLoading(false)
-    router.refresh()
   }
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editFormat) return
+    if (!editFormatData) return
     setLoading(true)
-    const supabase = createClient()
-    await supabase
-      .from("formats")
-      .update({
-        name: editFormat.name,
-        extension: editFormat.extension,
-        description: editFormat.description || null,
-        icon: editFormat.icon || null,
-      })
-      .eq("id", editFormat.id)
-    setEditOpen(null)
-    setEditFormat(null)
+    setError(null)
+
+    const result = await updateFormat(editFormatData.id, {
+      name: editFormatData.name,
+      extension: editFormatData.extension,
+      description: editFormatData.description || undefined,
+      icon: editFormatData.icon || undefined,
+    })
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      setEditOpen(null)
+      setEditFormatData(null)
+      router.refresh()
+    }
+
     setLoading(false)
-    router.refresh()
   }
 
   const handleDelete = async (id: string) => {
-    const supabase = createClient()
-    await supabase.from("formats").delete().eq("id", id)
+    await deleteFormat(id)
     router.refresh()
   }
 
   return (
     <div className="space-y-6">
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); setError(null) }}>
         <DialogTrigger asChild>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
@@ -114,6 +124,11 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
             <DialogDescription>Add a new e-book format to the supported formats list.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Format Name *</Label>
@@ -146,12 +161,12 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="icon">Icon (emoji or text)</Label>
+              <Label htmlFor="icon">Icon (lucide icon name)</Label>
               <Input
                 id="icon"
                 value={newFormat.icon}
                 onChange={(e) => setNewFormat({ ...newFormat, icon: e.target.value })}
-                placeholder="📖"
+                placeholder="book-open"
               />
             </div>
             <DialogFooter>
@@ -181,7 +196,8 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
                     open={editOpen === format.id}
                     onOpenChange={(open) => {
                       setEditOpen(open ? format.id : null)
-                      if (open) setEditFormat(format)
+                      setError(null)
+                      if (open) setEditFormatData(format)
                     }}
                   >
                     <DialogTrigger asChild>
@@ -194,22 +210,27 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
                         <DialogTitle>Edit Format</DialogTitle>
                         <DialogDescription>Update the format details.</DialogDescription>
                       </DialogHeader>
-                      {editFormat && (
+                      {editFormatData && (
                         <form onSubmit={handleEdit} className="space-y-4">
+                          {error && (
+                            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                              {error}
+                            </div>
+                          )}
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
                               <Label>Format Name *</Label>
                               <Input
-                                value={editFormat.name}
-                                onChange={(e) => setEditFormat({ ...editFormat, name: e.target.value })}
+                                value={editFormatData.name}
+                                onChange={(e) => setEditFormatData({ ...editFormatData, name: e.target.value })}
                                 required
                               />
                             </div>
                             <div className="space-y-2">
                               <Label>Extension *</Label>
                               <Input
-                                value={editFormat.extension}
-                                onChange={(e) => setEditFormat({ ...editFormat, extension: e.target.value })}
+                                value={editFormatData.extension}
+                                onChange={(e) => setEditFormatData({ ...editFormatData, extension: e.target.value })}
                                 required
                               />
                             </div>
@@ -217,16 +238,16 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
                           <div className="space-y-2">
                             <Label>Description</Label>
                             <Textarea
-                              value={editFormat.description || ""}
-                              onChange={(e) => setEditFormat({ ...editFormat, description: e.target.value })}
+                              value={editFormatData.description || ""}
+                              onChange={(e) => setEditFormatData({ ...editFormatData, description: e.target.value })}
                               rows={3}
                             />
                           </div>
                           <div className="space-y-2">
                             <Label>Icon</Label>
                             <Input
-                              value={editFormat.icon || ""}
-                              onChange={(e) => setEditFormat({ ...editFormat, icon: e.target.value })}
+                              value={editFormatData.icon || ""}
+                              onChange={(e) => setEditFormatData({ ...editFormatData, icon: e.target.value })}
                             />
                           </div>
                           <DialogFooter>
@@ -252,7 +273,7 @@ export function FormatsManager({ formats }: FormatsManagerProps) {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Format</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{format.name}"?
+                          Are you sure you want to delete &quot;{format.name}&quot;?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

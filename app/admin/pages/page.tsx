@@ -16,7 +16,7 @@ export default async function AdminPagesPage() {
         <div className="p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Pages</h1>
-            <p className="text-muted-foreground">Edit the content of your website pages</p>
+            <p className="text-muted-foreground">Create, edit, and manage your website pages</p>
           </div>
 
           <PagesManager pages={pages || []} />
